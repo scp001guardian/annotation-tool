@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import styled from '@emotion/styled';
 
 const AppContainer = styled.div`
@@ -52,14 +52,6 @@ const UserInputSection = styled.div`
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 `;
 
-const Input = styled.input`
-  width: 100%;
-  padding: 8px;
-  margin-bottom: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-`;
-
 const Button = styled.button`
   background-color: #007bff;
   color: white;
@@ -85,25 +77,6 @@ const Select = styled.select`
   margin-bottom: 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
-`;
-
-const ComponentItem = styled.div`
-  padding: 10px;
-  margin-bottom: 8px;
-  background-color: #f8f9fa;
-  border-radius: 4px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
-const UndoButton = styled(Button)`
-  background-color: #dc3545;
-  margin-left: 10px;
-
-  &:hover {
-    background-color: #c82333;
-  }
 `;
 
 const CurrentItem = styled.div`
@@ -138,15 +111,6 @@ interface Component {
   frequency?: 'Constant' | 'Frequent' | 'Occasional' | 'Rare' | 'Emergency';
 }
 
-interface SizeEntry {
-  source: string;
-  target: string;
-  size: string;
-  frequency?: string;
-  distance?: string;
-  spatial?: string;
-}
-
 interface ProximityEntry {
   target: string;
   proximity: string;
@@ -172,11 +136,9 @@ interface LegendItem {
 
 function App() {
   const [stage, setStage] = useState<1 | 2 | 3 | 4 | 5>(1);
-  const [userName, setUserName] = useState('');
   const [labeledComponents, setLabeledComponents] = useState<Component[]>([]);
   const [selectedComponent, setSelectedComponent] = useState<string>('');
   const [selectedSize, setSelectedSize] = useState<string>('');
-  const [sizeEntries, setSizeEntries] = useState<SizeEntry[]>([]);
   const [selectedFrequency, setSelectedFrequency] = useState<string>('');
   const [selectedTarget, setSelectedTarget] = useState<string>('');
   const [selectedDistance, setSelectedDistance] = useState<string>('');
@@ -355,19 +317,6 @@ function App() {
     }
   };
 
-  const getAvailableTargets = () => {
-    // Get all components that don't have a relationship with the selected source
-    return allComponents.filter(comp => {
-      if (comp.name === selectedComponent) return false;
-      
-      // Check if this component already has a relationship with the source (in either direction)
-      return !sizeEntries.some(entry => 
-        (entry.source === selectedComponent && entry.target === comp.name) ||
-        (entry.source === comp.name && entry.target === selectedComponent)
-      );
-    });
-  };
-
   const getOppositeSpatial = (spatial: string): string => {
     const opposites: { [key: string]: string } = {
       'Above': 'Below',
@@ -392,24 +341,6 @@ function App() {
         setSpatialTargetIndex(spatialSourceIndex + 2);
         setSelectedComponent(allComponents[spatialSourceIndex + 1].name);
         setSelectedTarget(allComponents[spatialSourceIndex + 2].name);
-      }
-    }
-  };
-
-  const getNextRelationship = () => {
-    if (currentSourceIndex < allComponents.length - 1) {
-      if (currentTargetIndex < allComponents.length - 1) {
-        setCurrentTargetIndex(currentTargetIndex + 1);
-        setSelectedTarget(allComponents[currentTargetIndex + 1].name);
-        setSelectedDistance('');
-        setSelectedSpatial('');
-      } else {
-        setCurrentSourceIndex(currentSourceIndex + 1);
-        setCurrentTargetIndex(currentSourceIndex + 2);
-        setSelectedComponent(allComponents[currentSourceIndex + 1].name);
-        setSelectedTarget(allComponents[currentSourceIndex + 2].name);
-        setSelectedDistance('');
-        setSelectedSpatial('');
       }
     }
   };
