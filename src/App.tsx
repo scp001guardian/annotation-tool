@@ -156,7 +156,7 @@ function App() {
 
   useEffect(() => {
     // Load labeled components from JSON file
-    fetch('/legend_components_1.json')
+    fetch('./legend_components_1.json')
       .then(response => response.json())
       .then(data => {
         if (data && data.components && Array.isArray(data.components)) {
@@ -784,7 +784,7 @@ function App() {
   return (
     <AppContainer>
       <ImageSection>
-        <img src="/1.png" alt="Car Dashboard" />
+        <img src="./1.png" alt="Car Dashboard" />
       </ImageSection>
       
       <SidePanel>
