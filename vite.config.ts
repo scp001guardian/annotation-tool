@@ -7,7 +7,7 @@ export default defineConfig({
     port: 3000,
     open: true
   },
-  base: '/annotation-tool/',
+  base: '/',
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
