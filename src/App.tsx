@@ -321,7 +321,7 @@ function App() {
 
   useEffect(() => {
     // Load available brands from the dataset directory
-    fetch('/Dataset/brands.json')
+    fetch('/annotation-tool/public/dataset/brands.json')
       .then(response => response.json())
       .then(data => {
         console.log('Loaded brands:', data);
@@ -337,7 +337,7 @@ function App() {
   useEffect(() => {
     if (selectedBrand) {
       console.log('Loading models for brand:', selectedBrand);
-      const modelPath = `/Dataset/${selectedBrand}/models.json`;
+      const modelPath = `/annotation-tool/public/dataset/${selectedBrand.toLowerCase()}/models.json`;
       console.log('Attempting to fetch from path:', modelPath);
       
       // Load available models for the selected brand - using exact case as in directory
@@ -571,7 +571,7 @@ function App() {
   const handleStartAnnotation = () => {
     if (selectedBrand && selectedModel) {
       // Load the components.json file for the selected model
-      fetch(`/Dataset/${selectedBrand}/${selectedModel}/components.json`)
+      fetch(`/annotation-tool/public/dataset/${selectedBrand.toLowerCase()}/${selectedModel}/components.json`)
         .then(response => response.json())
         .then(data => {
           // Convert the array of component names to Component objects
@@ -602,7 +602,7 @@ function App() {
           }
 
           // Set the current image path
-          setCurrentImage(`/Dataset/${selectedBrand}/${selectedModel}/interior.png`);
+          setCurrentImage(`/annotation-tool/public/dataset/${selectedBrand.toLowerCase()}/${selectedModel}/interior.png`);
           
           // Move to stage 1
           setStage(1);
