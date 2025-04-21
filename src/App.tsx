@@ -280,7 +280,6 @@ function App() {
   const [brands, setBrands] = useState<string[]>([]);
   const [models, setModels] = useState<string[]>([]);
   const [currentImage, setCurrentImage] = useState<string>('');
-  const [currentComponents, setCurrentComponents] = useState<string[]>([]);
 
   useEffect(() => {
     // Load labeled components from JSON file
