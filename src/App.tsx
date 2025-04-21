@@ -553,6 +553,8 @@ function App() {
     });
 
     const jsonData = {
+      brand: selectedBrand,
+      model: selectedModel,
       legend_items: legendItems
     };
 
@@ -561,7 +563,7 @@ function App() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'legend_annotations.json';
+    a.download = `${selectedBrand}_${selectedModel}_annotations.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

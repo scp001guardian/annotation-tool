@@ -1,18 +1,16 @@
-{
-  "components": [
-    "1. steering_responsive_headlight_off_switch",
-    "2. illumination_brightness_control_dial",
-    "3. combination_meter",
-    "4. multi_function_display",
-    "5. audio_and_navigation_system",
-    "6. hazard_warning_flusher_switch",
-    "7. climate_control",
-    "8. usb_power_supply",
-    "9. tilt_telescopic_steering",
-    "10. bsd_rcta_off_switch",
-    "11. fuse_box",
-    "12. auto_start_stop_off_switch",
-    "13. hood_release_knob",
-    "14. vehicle_dynamics_control_off_switch"
-  ]
-}
+[
+  "1. steering_responsive_headlight_off_switch",
+  "2. illumination_brightness_control_dial",
+  "3. combination_meter",
+  "4. multi_function_display",
+  "5. audio_and_navigation_system",
+  "6. hazard_warning_flusher_switch",
+  "7. climate_control",
+  "8. usb_power_supply",
+  "9. tilt_telescopic_steering",
+  "10. bsd_rcta_off_switch",
+  "11. fuse_box",
+  "12. auto_start_stop_off_switch",
+  "13. hood_release_knob",
+  "14. vehicle_dynamics_control_off_switch"
+]
