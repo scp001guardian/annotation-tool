@@ -256,6 +256,21 @@ interface LegendItem {
   }[];
 }
 
+// Add interfaces for history tracking
+interface AnnotationHistory {
+  stage: number;
+  componentSizes: Record<string, string>;
+  componentFrequencies: Record<string, string>;
+  componentProximities: Record<string, ProximityEntry[]>;
+  componentSpatialRelations: Record<string, SpatialEntry[]>;
+  sizeComponentIndex: number;
+  frequencyComponentIndex: number;
+  currentSourceIndex: number;
+  currentTargetIndex: number;
+  spatialSourceIndex: number;
+  spatialTargetIndex: number;
+}
+
 function App() {
   const [stage, setStage] = useState<0 | 1 | 2 | 3 | 4 | 5>(0);
   const [labeledComponents, setLabeledComponents] = useState<Component[]>([]);
@@ -280,6 +295,12 @@ function App() {
   const [brands, setBrands] = useState<string[]>([]);
   const [models, setModels] = useState<string[]>([]);
   const [currentImage, setCurrentImage] = useState<string>('');
+  
+  // Add state for history tracking
+  const [history, setHistory] = useState<AnnotationHistory[]>([]);
+  const [currentHistoryIndex, setCurrentHistoryIndex] = useState(-1);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
 
   useEffect(() => {
     // Load labeled components from JSON file
@@ -387,6 +408,80 @@ function App() {
     }
   };
 
+  // Add function to save current state to history
+  const saveToHistory = () => {
+    const currentState: AnnotationHistory = {
+      stage,
+      componentSizes: { ...componentSizes },
+      componentFrequencies: { ...componentFrequencies },
+      componentProximities: JSON.parse(JSON.stringify(componentProximities)),
+      componentSpatialRelations: JSON.parse(JSON.stringify(componentSpatialRelations)),
+      sizeComponentIndex,
+      frequencyComponentIndex,
+      currentSourceIndex,
+      currentTargetIndex,
+      spatialSourceIndex,
+      spatialTargetIndex
+    };
+    
+    // Remove any redo states if we're not at the end of history
+    const newHistory = history.slice(0, currentHistoryIndex + 1);
+    newHistory.push(currentState);
+    
+    setHistory(newHistory);
+    setCurrentHistoryIndex(newHistory.length - 1);
+    setCanUndo(newHistory.length > 1);
+    setCanRedo(false);
+  };
+
+  // Add function to undo the last action
+  const handleUndo = () => {
+    if (currentHistoryIndex > 0) {
+      const newIndex = currentHistoryIndex - 1;
+      const stateToRestore = history[newIndex];
+      
+      setStage(stateToRestore.stage as 0 | 1 | 2 | 3 | 4 | 5);
+      setComponentSizes(stateToRestore.componentSizes);
+      setComponentFrequencies(stateToRestore.componentFrequencies);
+      setComponentProximities(stateToRestore.componentProximities);
+      setComponentSpatialRelations(stateToRestore.componentSpatialRelations);
+      setSizeComponentIndex(stateToRestore.sizeComponentIndex);
+      setFrequencyComponentIndex(stateToRestore.frequencyComponentIndex);
+      setCurrentSourceIndex(stateToRestore.currentSourceIndex);
+      setCurrentTargetIndex(stateToRestore.currentTargetIndex);
+      setSpatialSourceIndex(stateToRestore.spatialSourceIndex);
+      setSpatialTargetIndex(stateToRestore.spatialTargetIndex);
+      
+      setCurrentHistoryIndex(newIndex);
+      setCanUndo(newIndex > 0);
+      setCanRedo(true);
+    }
+  };
+
+  // Add function to redo the last undone action
+  const handleRedo = () => {
+    if (currentHistoryIndex < history.length - 1) {
+      const newIndex = currentHistoryIndex + 1;
+      const stateToRestore = history[newIndex];
+      
+      setStage(stateToRestore.stage as 0 | 1 | 2 | 3 | 4 | 5);
+      setComponentSizes(stateToRestore.componentSizes);
+      setComponentFrequencies(stateToRestore.componentFrequencies);
+      setComponentProximities(stateToRestore.componentProximities);
+      setComponentSpatialRelations(stateToRestore.componentSpatialRelations);
+      setSizeComponentIndex(stateToRestore.sizeComponentIndex);
+      setFrequencyComponentIndex(stateToRestore.frequencyComponentIndex);
+      setCurrentSourceIndex(stateToRestore.currentSourceIndex);
+      setCurrentTargetIndex(stateToRestore.currentTargetIndex);
+      setSpatialSourceIndex(stateToRestore.spatialSourceIndex);
+      setSpatialTargetIndex(stateToRestore.spatialTargetIndex);
+      
+      setCurrentHistoryIndex(newIndex);
+      setCanUndo(true);
+      setCanRedo(newIndex < history.length - 1);
+    }
+  };
+
   const handleSaveSize = () => {
     if (selectedComponent && selectedSize) {
       // Update the size in componentSizes
@@ -405,6 +500,9 @@ function App() {
       // Reset selections
       setSelectedComponent('');
       setSelectedSize('');
+      
+      // Save to history after state updates
+      setTimeout(saveToHistory, 0);
     }
   };
 
@@ -426,6 +524,9 @@ function App() {
       // Reset selections
       setSelectedComponent('');
       setSelectedFrequency('');
+      
+      // Save to history after state updates
+      setTimeout(saveToHistory, 0);
     }
   };
 
@@ -452,6 +553,9 @@ function App() {
       // Reset selections
       setSelectedTarget('');
       setSelectedDistance('');
+      
+      // Save to history after state updates
+      setTimeout(saveToHistory, 0);
     }
   };
 
@@ -480,6 +584,9 @@ function App() {
       // Reset selections
       setSelectedTarget('');
       setSelectedSpatial('');
+      
+      // Save to history after state updates
+      setTimeout(saveToHistory, 0);
     }
   };
 
@@ -714,6 +821,7 @@ function App() {
 
           <UserInputSection>
             <h3>Size Categorization</h3>
+            {renderUndoRedoButtons()}
             <div style={{ marginBottom: '20px' }}>
               <CurrentItem>
                 <CurrentItemTitle>Current Component</CurrentItemTitle>
@@ -800,6 +908,7 @@ function App() {
 
           <UserInputSection>
             <h3>Frequency Annotation</h3>
+            {renderUndoRedoButtons()}
             <Button 
               onClick={() => {
                 setStage(1);
@@ -902,6 +1011,7 @@ function App() {
 
           <UserInputSection>
             <h3>Proximity Annotation</h3>
+            {renderUndoRedoButtons()}
             <Button 
               onClick={() => {
                 setStage(2);
@@ -1012,6 +1122,7 @@ function App() {
 
           <UserInputSection>
             <h3>Spatial Relationship Annotation</h3>
+            {renderUndoRedoButtons()}
             <Button 
               onClick={() => {
                 setStage(3);
@@ -1102,6 +1213,28 @@ function App() {
           </ul>
         </AnnotatedList>
       </>
+    );
+  };
+
+  // Add undo/redo buttons to the UI
+  const renderUndoRedoButtons = () => {
+    return (
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+        <Button 
+          onClick={handleUndo}
+          disabled={!canUndo}
+          style={{ backgroundColor: canUndo ? '#6c757d' : '#cccccc' }}
+        >
+          Undo
+        </Button>
+        <Button 
+          onClick={handleRedo}
+          disabled={!canRedo}
+          style={{ backgroundColor: canRedo ? '#6c757d' : '#cccccc' }}
+        >
+          Redo
+        </Button>
+      </div>
     );
   };
 
