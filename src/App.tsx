@@ -613,7 +613,8 @@ function App() {
       'Above-Left': 'Below-Right',
       'Above-Right': 'Below-Left',
       'Below-Left': 'Above-Right',
-      'Below-Right': 'Above-Left'
+      'Below-Right': 'Above-Left',
+      'Same Place': 'Same Place'
     };
     return opposites[spatial] || spatial;
   };
@@ -1153,6 +1154,7 @@ function App() {
                   <option value="Above-Right">Above-Right</option>
                   <option value="Below-Left">Below-Left</option>
                   <option value="Below-Right">Below-Right</option>
+                  <option value="Same Place">Same Place</option>
                 </Select>
                 <span style={{ marginLeft: '5px', fontSize: '1.4em', fontWeight: 700 }}>of <span style={{ fontWeight: 800, color: '#1976d2' }}>{allComponents[spatialSourceIndex]?.name || 'None'}</span></span>
               </div>
