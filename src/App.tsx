@@ -818,6 +818,14 @@ function App() {
               <li>Choose the size from the dropdown for the current component.</li>
               <li>Click "Save Size" to record your selection and move to the next component.</li>
             </ol>
+            <h4>Size Categories:</h4>
+            <ul>
+              <li>VERY_LARGE: Dominates the dashboard, major visual element</li>
+              <li>LARGE: Substantial size, but not dominating</li>
+              <li>MEDIUM: Average-sized component</li>
+              <li>SMALL: Smaller than average component</li>
+              <li>VERY_SMALL: Minimal, hard to see without focusing</li>
+            </ul>
           </InstructionsSection>
 
           <UserInputSection>
@@ -905,6 +913,14 @@ function App() {
               <li>Choose the frequency from the dropdown for the current component.</li>
               <li>Click "Save Frequency" to record your selection and move to the next component.</li>
             </ol>
+            <h4>Frequency Categories:</h4>
+            <ul>
+              <li>CONSTANT: User interacts with this almost every drive (e.g., steering wheel)</li>
+              <li>FREQUENT: User interacts with this in most drives (e.g., climate controls)</li>
+              <li>OCCASIONAL: User interacts with this weekly or in specific situations</li>
+              <li>RARE: User interacts with this only few times a year or in special cases</li>
+              <li>EMERGENCY: User only interacts with this in emergencies or problems</li>
+            </ul>
           </InstructionsSection>
 
           <UserInputSection>
@@ -1008,6 +1024,14 @@ function App() {
               <li>Click "Save Proximity" to record your selection and move to the next pair.</li>
               <li><strong>Note:</strong> The system will automatically handle the reverse relationship.</li>
             </ol>
+            <h4>Proximity Categories:</h4>
+            <ul>
+              <li>ADJACENT: Directly next to each other, touching or nearly touching</li>
+              <li>CLOSE: Near each other, but with some small space or other elements between</li>
+              <li>MODERATE: Some distance apart, but still in the same general area</li>
+              <li>FAR: Located in different areas of the dashboard</li>
+              <li>VERY_FAR: At opposite ends of the dashboard</li>
+            </ul>
           </InstructionsSection>
 
           <UserInputSection>
@@ -1119,6 +1143,18 @@ function App() {
               <li>Click "Save Spatial Relationship" to record your selection and move to the next pair.</li>
               <li><strong>Note:</strong> The system will automatically record the opposite relationship for the target component.</li>
             </ol>
+            <h4>Position Categories:</h4>
+            <ul>
+              <li>ABOVE: Target is positioned above the Source</li>
+              <li>BELOW: Target is positioned below the Source</li>
+              <li>LEFT: Target is positioned to the left of the Source</li>
+              <li>RIGHT: Target is positioned to the right of the Source</li>
+              <li>ABOVE_LEFT: Target is positioned diagonally above and to the left of the Source</li>
+              <li>ABOVE_RIGHT: Target is positioned diagonally above and to the right of the Source</li>
+              <li>BELOW_LEFT: Target is positioned diagonally below and to the left of the Source</li>
+              <li>BELOW_RIGHT: Target is positioned diagonally below and to the right of the Source</li>
+              <li>SAME_LOCATION: Target occupies the same visual space as the Source or significantly overlaps</li>
+            </ul>
           </InstructionsSection>
 
           <UserInputSection>
