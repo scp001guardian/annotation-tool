@@ -1,15 +1,15 @@
 [
-  "Direction indicators",
-  "Information display control",
-  "Instrument cluster",
-  "Gearshift lever",
-  "Hazard flasher switch",
-  "Audio unit",
-  "Climate controls",
-  "Auxiliary switches",
-  "Ignition",
-  "Horn",
-  "Steering wheel adjustment",
-  "Cruise control",
-  "Lighting control"
+  "A.Direction indicators",
+  "B.Information display control",
+  "C.Instrument cluster",
+  "D.Gearshift lever",
+  "E.Hazard flasher switch",
+  "F.Audio unit",
+  "G.Climate controls",
+  "H.Auxiliary switches",
+  "I.Ignition",
+  "J.Horn",
+  "K.Steering wheel adjustment",
+  "L.Cruise control",
+  "M.Lighting control"
 ]
