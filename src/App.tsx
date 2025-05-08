@@ -256,19 +256,13 @@ interface LegendItem {
   }[];
 }
 
-// Add interfaces for history tracking
-interface AnnotationHistory {
-  stage: number;
-  componentSizes: Record<string, string>;
-  componentFrequencies: Record<string, string>;
-  componentProximities: Record<string, ProximityEntry[]>;
-  componentSpatialRelations: Record<string, SpatialEntry[]>;
-  sizeComponentIndex: number;
-  frequencyComponentIndex: number;
-  currentSourceIndex: number;
-  currentTargetIndex: number;
-  spatialSourceIndex: number;
-  spatialTargetIndex: number;
+// Add interface for last action
+interface LastAction {
+  type: 'size' | 'frequency' | 'proximity' | 'spatial';
+  component: string;
+  target?: string;
+  value: string;
+  previousValue?: string;
 }
 
 function App() {
@@ -295,13 +289,9 @@ function App() {
   const [brands, setBrands] = useState<string[]>([]);
   const [models, setModels] = useState<string[]>([]);
   const [currentImage, setCurrentImage] = useState<string>('');
-  
-  // Add state for history tracking
-  const [history, setHistory] = useState<AnnotationHistory[]>([]);
-  const [currentHistoryIndex, setCurrentHistoryIndex] = useState(-1);
+  const [lastAction, setLastAction] = useState<LastAction | null>(null);
   const [canUndo, setCanUndo] = useState(false);
-  const [canRedo, setCanRedo] = useState(false);
-
+  
   useEffect(() => {
     // Load labeled components from JSON file
     fetch('/annotation-tool/legend_components_1.json')
@@ -408,82 +398,121 @@ function App() {
     }
   };
 
-  // Add function to save current state to history
-  const saveToHistory = () => {
-    const currentState: AnnotationHistory = {
-      stage,
-      componentSizes: { ...componentSizes },
-      componentFrequencies: { ...componentFrequencies },
-      componentProximities: JSON.parse(JSON.stringify(componentProximities)),
-      componentSpatialRelations: JSON.parse(JSON.stringify(componentSpatialRelations)),
-      sizeComponentIndex,
-      frequencyComponentIndex,
-      currentSourceIndex,
-      currentTargetIndex,
-      spatialSourceIndex,
-      spatialTargetIndex
-    };
-    
-    // Remove any redo states if we're not at the end of history
-    const newHistory = history.slice(0, currentHistoryIndex + 1);
-    newHistory.push(currentState);
-    
-    setHistory(newHistory);
-    setCurrentHistoryIndex(newHistory.length - 1);
-    setCanUndo(newHistory.length > 1);
-    setCanRedo(false);
-  };
-
-  // Add function to undo the last action
   const handleUndo = () => {
-    if (currentHistoryIndex > 0) {
-      const newIndex = currentHistoryIndex - 1;
-      const stateToRestore = history[newIndex];
-      
-      setStage(stateToRestore.stage as 0 | 1 | 2 | 3 | 4 | 5);
-      setComponentSizes(stateToRestore.componentSizes);
-      setComponentFrequencies(stateToRestore.componentFrequencies);
-      setComponentProximities(stateToRestore.componentProximities);
-      setComponentSpatialRelations(stateToRestore.componentSpatialRelations);
-      setSizeComponentIndex(stateToRestore.sizeComponentIndex);
-      setFrequencyComponentIndex(stateToRestore.frequencyComponentIndex);
-      setCurrentSourceIndex(stateToRestore.currentSourceIndex);
-      setCurrentTargetIndex(stateToRestore.currentTargetIndex);
-      setSpatialSourceIndex(stateToRestore.spatialSourceIndex);
-      setSpatialTargetIndex(stateToRestore.spatialTargetIndex);
-      
-      setCurrentHistoryIndex(newIndex);
-      setCanUndo(newIndex > 0);
-      setCanRedo(true);
-    }
-  };
+    if (!lastAction) return;
 
-  // Add function to redo the last undone action
-  const handleRedo = () => {
-    if (currentHistoryIndex < history.length - 1) {
-      const newIndex = currentHistoryIndex + 1;
-      const stateToRestore = history[newIndex];
-      
-      setStage(stateToRestore.stage as 0 | 1 | 2 | 3 | 4 | 5);
-      setComponentSizes(stateToRestore.componentSizes);
-      setComponentFrequencies(stateToRestore.componentFrequencies);
-      setComponentProximities(stateToRestore.componentProximities);
-      setComponentSpatialRelations(stateToRestore.componentSpatialRelations);
-      setSizeComponentIndex(stateToRestore.sizeComponentIndex);
-      setFrequencyComponentIndex(stateToRestore.frequencyComponentIndex);
-      setCurrentSourceIndex(stateToRestore.currentSourceIndex);
-      setCurrentTargetIndex(stateToRestore.currentTargetIndex);
-      setSpatialSourceIndex(stateToRestore.spatialSourceIndex);
-      setSpatialTargetIndex(stateToRestore.spatialTargetIndex);
-      
-      setCurrentHistoryIndex(newIndex);
-      setCanUndo(true);
-      setCanRedo(newIndex < history.length - 1);
+    switch (lastAction.type) {
+      case 'size':
+        setComponentSizes(prev => ({
+          ...prev,
+          [lastAction.component]: lastAction.previousValue || ''
+        }));
+        setLabeledComponents(prevComponents => 
+          prevComponents.map(c => 
+            c.name === lastAction.component ? { ...c, size: lastAction.previousValue as Component['size'] } : c
+          )
+        );
+        // Update size component index to allow re-annotation
+        const sizeIndex = allComponents.findIndex(c => c.name === lastAction.component);
+        if (sizeIndex !== -1) {
+          setSizeComponentIndex(sizeIndex);
+          setSelectedComponent(allComponents[sizeIndex].name);
+          setSelectedSize('');
+        }
+        break;
+
+      case 'frequency':
+        setComponentFrequencies(prev => ({
+          ...prev,
+          [lastAction.component]: lastAction.previousValue || ''
+        }));
+        setLabeledComponents(prevComponents => 
+          prevComponents.map(c => 
+            c.name === lastAction.component ? { ...c, frequency: lastAction.previousValue as Component['frequency'] } : c
+          )
+        );
+        // Update frequency component index to allow re-annotation
+        const freqIndex = allComponents.findIndex(c => c.name === lastAction.component);
+        if (freqIndex !== -1) {
+          setFrequencyComponentIndex(freqIndex);
+          setSelectedComponent(allComponents[freqIndex].name);
+          setSelectedFrequency('');
+        }
+        break;
+
+      case 'proximity':
+        if (lastAction.target && lastAction.component) {
+          setComponentProximities(prev => {
+            const newProximities = { ...prev };
+            const component = lastAction.component as string;
+            const target = lastAction.target as string;
+            
+            if (component in newProximities) {
+              newProximities[component] = newProximities[component].filter(
+                (entry: ProximityEntry) => entry.target !== target
+              );
+            }
+            if (target in newProximities) {
+              newProximities[target] = newProximities[target].filter(
+                (entry: ProximityEntry) => entry.target !== component
+              );
+            }
+            return newProximities;
+          });
+          // Update proximity indices to allow re-annotation
+          const sourceIndex = allComponents.findIndex(c => c.name === lastAction.component);
+          const targetIndex = allComponents.findIndex(c => c.name === lastAction.target);
+          if (sourceIndex !== -1 && targetIndex !== -1) {
+            setCurrentSourceIndex(sourceIndex);
+            setCurrentTargetIndex(targetIndex);
+            setSelectedComponent(allComponents[sourceIndex].name);
+            setSelectedTarget(allComponents[targetIndex].name);
+            setSelectedDistance('');
+          }
+        }
+        break;
+
+      case 'spatial':
+        if (lastAction.target && lastAction.component) {
+          setComponentSpatialRelations(prev => {
+            const newRelations = { ...prev };
+            const component = lastAction.component as string;
+            const target = lastAction.target as string;
+            
+            if (component in newRelations) {
+              newRelations[component] = newRelations[component].filter(
+                (entry: SpatialEntry) => entry.target !== target
+              );
+            }
+            if (target in newRelations) {
+              newRelations[target] = newRelations[target].filter(
+                (entry: SpatialEntry) => entry.target !== component
+              );
+            }
+            return newRelations;
+          });
+          // Update spatial indices to allow re-annotation
+          const spatialSourceIndex = allComponents.findIndex(c => c.name === lastAction.component);
+          const spatialTargetIndex = allComponents.findIndex(c => c.name === lastAction.target);
+          if (spatialSourceIndex !== -1 && spatialTargetIndex !== -1) {
+            setSpatialSourceIndex(spatialSourceIndex);
+            setSpatialTargetIndex(spatialTargetIndex);
+            setSelectedComponent(allComponents[spatialSourceIndex].name);
+            setSelectedTarget(allComponents[spatialTargetIndex].name);
+            setSelectedSpatial('');
+          }
+        }
+        break;
     }
+
+    setLastAction(null);
+    setCanUndo(false);
   };
 
   const handleSaveSize = () => {
     if (selectedComponent && selectedSize) {
+      const previousValue = componentSizes[selectedComponent];
+      
       // Update the size in componentSizes
       setComponentSizes(prev => ({
         ...prev,
@@ -497,17 +526,25 @@ function App() {
         )
       );
 
+      // Store the last action
+      setLastAction({
+        type: 'size',
+        component: selectedComponent,
+        value: selectedSize,
+        previousValue
+      });
+      setCanUndo(true);
+
       // Reset selections
       setSelectedComponent('');
       setSelectedSize('');
-      
-      // Save to history after state updates
-      setTimeout(saveToHistory, 0);
     }
   };
 
   const handleSaveFrequency = () => {
     if (selectedComponent && selectedFrequency) {
+      const previousValue = componentFrequencies[selectedComponent];
+      
       // Update the frequency in componentFrequencies
       setComponentFrequencies(prev => ({
         ...prev,
@@ -521,12 +558,18 @@ function App() {
         )
       );
 
+      // Store the last action
+      setLastAction({
+        type: 'frequency',
+        component: selectedComponent,
+        value: selectedFrequency,
+        previousValue
+      });
+      setCanUndo(true);
+
       // Reset selections
       setSelectedComponent('');
       setSelectedFrequency('');
-      
-      // Save to history after state updates
-      setTimeout(saveToHistory, 0);
     }
   };
 
@@ -538,24 +581,25 @@ function App() {
         [selectedComponent]: [
           ...prev[selectedComponent],
           { target: selectedTarget, proximity: selectedDistance }
-        ]
-      }));
-
-      // Add proximity for target -> source
-      setComponentProximities(prev => ({
-        ...prev,
+        ],
         [selectedTarget]: [
           ...prev[selectedTarget],
           { target: selectedComponent, proximity: selectedDistance }
         ]
       }));
 
+      // Store the last action
+      setLastAction({
+        type: 'proximity',
+        component: selectedComponent,
+        target: selectedTarget,
+        value: selectedDistance
+      });
+      setCanUndo(true);
+
       // Reset selections
       setSelectedTarget('');
       setSelectedDistance('');
-      
-      // Save to history after state updates
-      setTimeout(saveToHistory, 0);
     }
   };
 
@@ -569,24 +613,25 @@ function App() {
         [selectedComponent]: [
           ...prev[selectedComponent],
           { target: selectedTarget, spatialRelation: selectedSpatial }
-        ]
-      }));
-
-      // Add opposite spatial relation for target -> source
-      setComponentSpatialRelations(prev => ({
-        ...prev,
+        ],
         [selectedTarget]: [
           ...prev[selectedTarget],
           { target: selectedComponent, spatialRelation: oppositeSpatial }
         ]
       }));
 
+      // Store the last action
+      setLastAction({
+        type: 'spatial',
+        component: selectedComponent,
+        target: selectedTarget,
+        value: selectedSpatial
+      });
+      setCanUndo(true);
+
       // Reset selections
       setSelectedTarget('');
       setSelectedSpatial('');
-      
-      // Save to history after state updates
-      setTimeout(saveToHistory, 0);
     }
   };
 
@@ -830,7 +875,7 @@ function App() {
 
           <UserInputSection>
             <h3>Size Categorization</h3>
-            {renderUndoRedoButtons()}
+            {renderUndoButton()}
             <div style={{ marginBottom: '20px' }}>
               <CurrentItem>
                 <CurrentItemTitle>Current Component</CurrentItemTitle>
@@ -925,7 +970,7 @@ function App() {
 
           <UserInputSection>
             <h3>Frequency Annotation</h3>
-            {renderUndoRedoButtons()}
+            {renderUndoButton()}
             <Button 
               onClick={() => {
                 setStage(1);
@@ -1036,7 +1081,7 @@ function App() {
 
           <UserInputSection>
             <h3>Proximity Annotation</h3>
-            {renderUndoRedoButtons()}
+            {renderUndoButton()}
             <Button 
               onClick={() => {
                 setStage(2);
@@ -1159,7 +1204,7 @@ function App() {
 
           <UserInputSection>
             <h3>Spatial Relationship Annotation</h3>
-            {renderUndoRedoButtons()}
+            {renderUndoButton()}
             <Button 
               onClick={() => {
                 setStage(3);
@@ -1254,23 +1299,16 @@ function App() {
     );
   };
 
-  // Add undo/redo buttons to the UI
-  const renderUndoRedoButtons = () => {
+  // Add undo button to the UI
+  const renderUndoButton = () => {
     return (
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
+      <div style={{ marginBottom: '20px' }}>
         <Button 
           onClick={handleUndo}
           disabled={!canUndo}
           style={{ backgroundColor: canUndo ? '#6c757d' : '#cccccc' }}
         >
-          Undo
-        </Button>
-        <Button 
-          onClick={handleRedo}
-          disabled={!canRedo}
-          style={{ backgroundColor: canRedo ? '#6c757d' : '#cccccc' }}
-        >
-          Redo
+          Undo Last Action
         </Button>
       </div>
     );
