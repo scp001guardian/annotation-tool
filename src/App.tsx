@@ -277,7 +277,6 @@ function App() {
   const [selectedTarget, setSelectedTarget] = useState<string>('');
   const [selectedDistance, setSelectedDistance] = useState<string>('');
   const [selectedSpatial, setSelectedSpatial] = useState<string>('');
-  const [selectedLandmark, setSelectedLandmark] = useState<string>('');
   const [selectedLandmarks, setSelectedLandmarks] = useState<string[]>([]);
   const [sizeComponentIndex, setSizeComponentIndex] = useState(0);
   const [frequencyComponentIndex, setFrequencyComponentIndex] = useState(0);
@@ -711,7 +710,7 @@ function App() {
     if (landmarkComponentIndex < allComponents.length - 1) {
       setLandmarkComponentIndex(landmarkComponentIndex + 1);
       setSelectedComponent(allComponents[landmarkComponentIndex + 1].name);
-      setSelectedLandmark('');
+      setSelectedLandmarks([]);
     }
   };
 
@@ -870,7 +869,7 @@ function App() {
     setSelectedComponent('');
     setSelectedSize('');
     setSelectedFrequency('');
-    setSelectedLandmark('');
+    setSelectedLandmarks([]);
     setSelectedTarget('');
     setSelectedDistance('');
     setSelectedSpatial('');
@@ -1023,8 +1022,8 @@ function App() {
           <ul>
             {Object.entries(componentSizes)
               .filter(([_, size]) => size !== '')
-              .map(([name, size], index) => (
-                <li key={index}>{name}: {size}</li>
+              .map(([name, size]) => (
+                <li key={name}>{name}: {size}</li>
               ))}
           </ul>
         </AnnotatedList>
@@ -1130,8 +1129,8 @@ function App() {
           <ul>
             {Object.entries(componentFrequencies)
               .filter(([_, freq]) => freq !== '')
-              .map(([name, freq], index) => (
-                <li key={index}>{name}: {freq}</li>
+              .map(([name, freq]) => (
+                <li key={name}>{name}: {freq}</li>
               ))}
           </ul>
         </AnnotatedList>
@@ -1244,16 +1243,14 @@ function App() {
 
         <AnnotatedList>
           <h4>Annotated Proximities:</h4>
-          <ul>
-            {Object.entries(componentProximities)
-              .map(([source, entries]) => 
-                entries.map((entry, index) => (
-                  <li key={`${source}-${entry.target}-${index}`}>
-                    {source} → {entry.target} ({entry.proximity})
-                  </li>
-                ))
-              )}
-          </ul>
+          {Object.entries(componentProximities)
+            .map(([source, entries]) => 
+              entries.map((entry) => (
+                <li key={`${source}-${entry.target}`}>
+                  {source} → {entry.target} ({entry.proximity})
+                </li>
+              ))
+            )}
         </AnnotatedList>
       </>
     );
@@ -1369,16 +1366,14 @@ function App() {
 
         <AnnotatedList>
           <h4>Annotated Spatial Relationships:</h4>
-          <ul>
-            {Object.entries(componentSpatialRelations)
-              .map(([source, entries]) => 
-                entries.map((entry, index) => (
-                  <li key={`${source}-${entry.target}-${index}`}>
-                    {source} → {entry.target} ({entry.spatialRelation})
-                  </li>
-                ))
-              )}
-          </ul>
+          {Object.entries(componentSpatialRelations)
+            .map(([source, entries]) => 
+              entries.map((entry) => (
+                <li key={`${source}-${entry.target}`}>
+                  {source} → {entry.target} ({entry.spatialRelation})
+                </li>
+              ))
+            )}
         </AnnotatedList>
       </>
     );
@@ -1439,7 +1434,7 @@ function App() {
                   <div style={{ color: '#666', fontStyle: 'italic' }}>No landmarks selected yet</div>
                 ) : (
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '5px' }}>
-                    {selectedLandmarks.map((landmark, index) => (
+                    {selectedLandmarks.map((landmark) => (
                       <div key={landmark} style={{ 
                         backgroundColor: '#e3f2fd', 
                         padding: '5px 10px', 
@@ -1546,8 +1541,8 @@ function App() {
                 <div style={{ color: '#666', fontStyle: 'italic', fontSize: '0.9em' }}>No landmarks selected</div>
               ) : (
                 <ul style={{ margin: '5px 0', paddingLeft: '20px' }}>
-                  {landmarks.map((landmark, index) => (
-                    <li key={`${name}-${landmark}-${index}`} style={{ fontSize: '0.9em' }}>{landmark}</li>
+                  {landmarks.map((landmark) => (
+                    <li key={`${name}-${landmark}`} style={{ fontSize: '0.9em' }}>{landmark}</li>
                   ))}
                 </ul>
               )}
