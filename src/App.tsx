@@ -231,6 +231,7 @@ interface Component {
   name: string;
   size?: 'Very Large' | 'Large' | 'Medium' | 'Small' | 'Very Small';
   frequency?: 'Constant' | 'Frequent' | 'Occasional' | 'Rare' | 'Emergency';
+  landmarks?: string[]; // Array of 3 landmark component names
 }
 
 interface ProximityEntry {
@@ -248,25 +249,27 @@ interface LegendItem {
   text: string;
   size: string;
   frequency: string;
+  landmarks: string;
   relationships: {
     target: string;
     proximity: string;
     significance: number;
     position: string;
+    landmark: boolean;
   }[];
 }
 
 // Add interface for last action
 interface LastAction {
-  type: 'size' | 'frequency' | 'proximity' | 'spatial';
+  type: 'size' | 'frequency' | 'proximity' | 'spatial' | 'landmark';
   component: string;
   target?: string;
-  value: string;
-  previousValue?: string;
+  value: string | string[];
+  previousValue?: string | string[];
 }
 
 function App() {
-  const [stage, setStage] = useState<0 | 1 | 2 | 3 | 4 | 5>(0);
+  const [stage, setStage] = useState<0 | 1 | 2 | 3 | 4 | 5 | 6>(0);
   const [labeledComponents, setLabeledComponents] = useState<Component[]>([]);
   const [selectedComponent, setSelectedComponent] = useState<string>('');
   const [selectedSize, setSelectedSize] = useState<string>('');
@@ -274,12 +277,16 @@ function App() {
   const [selectedTarget, setSelectedTarget] = useState<string>('');
   const [selectedDistance, setSelectedDistance] = useState<string>('');
   const [selectedSpatial, setSelectedSpatial] = useState<string>('');
+  const [selectedLandmark, setSelectedLandmark] = useState<string>('');
+  const [selectedLandmarks, setSelectedLandmarks] = useState<string[]>([]);
   const [sizeComponentIndex, setSizeComponentIndex] = useState(0);
   const [frequencyComponentIndex, setFrequencyComponentIndex] = useState(0);
+  const [landmarkComponentIndex, setLandmarkComponentIndex] = useState(0);
   const [currentSourceIndex, setCurrentSourceIndex] = useState(0);
   const [currentTargetIndex, setCurrentTargetIndex] = useState(1);
   const [componentSizes, setComponentSizes] = useState<Record<string, string>>({});
   const [componentFrequencies, setComponentFrequencies] = useState<Record<string, string>>({});
+  const [componentLandmarks, setComponentLandmarks] = useState<Record<string, string[]>>({});
   const [componentProximities, setComponentProximities] = useState<Record<string, ProximityEntry[]>>({});
   const [spatialSourceIndex, setSpatialSourceIndex] = useState(0);
   const [spatialTargetIndex, setSpatialTargetIndex] = useState(1);
@@ -306,16 +313,19 @@ function App() {
           // Initialize size and frequency objects with empty values
           const initialSizes: Record<string, string> = {};
           const initialFrequencies: Record<string, string> = {};
+          const initialLandmarks: Record<string, string[]> = {};
           const initialProximities: Record<string, ProximityEntry[]> = {};
           const initialSpatialRelations: Record<string, SpatialEntry[]> = {};
           components.forEach((comp: Component) => {
             initialSizes[comp.name] = '';
             initialFrequencies[comp.name] = '';
+            initialLandmarks[comp.name] = [];
             initialProximities[comp.name] = [];
             initialSpatialRelations[comp.name] = [];
           });
           setComponentSizes(initialSizes);
           setComponentFrequencies(initialFrequencies);
+          setComponentLandmarks(initialLandmarks);
           setComponentProximities(initialProximities);
           setComponentSpatialRelations(initialSpatialRelations);
 
@@ -405,11 +415,11 @@ function App() {
       case 'size':
         setComponentSizes(prev => ({
           ...prev,
-          [lastAction.component]: lastAction.previousValue || ''
+          [lastAction.component]: (lastAction.previousValue as string) || ''
         }));
         setLabeledComponents(prevComponents => 
           prevComponents.map(c => 
-            c.name === lastAction.component ? { ...c, size: lastAction.previousValue as Component['size'] } : c
+            c.name === lastAction.component ? { ...c, size: (lastAction.previousValue as Component['size']) } : c
           )
         );
         // Update size component index to allow re-annotation
@@ -424,11 +434,11 @@ function App() {
       case 'frequency':
         setComponentFrequencies(prev => ({
           ...prev,
-          [lastAction.component]: lastAction.previousValue || ''
+          [lastAction.component]: (lastAction.previousValue as string) || ''
         }));
         setLabeledComponents(prevComponents => 
           prevComponents.map(c => 
-            c.name === lastAction.component ? { ...c, frequency: lastAction.previousValue as Component['frequency'] } : c
+            c.name === lastAction.component ? { ...c, frequency: (lastAction.previousValue as Component['frequency']) } : c
           )
         );
         // Update frequency component index to allow re-annotation
@@ -501,6 +511,25 @@ function App() {
             setSelectedTarget(allComponents[spatialTargetIndex].name);
             setSelectedSpatial('');
           }
+        }
+        break;
+
+      case 'landmark':
+        setComponentLandmarks(prev => ({
+          ...prev,
+          [lastAction.component]: (lastAction.previousValue as string[]) || []
+        }));
+        setLabeledComponents(prevComponents => 
+          prevComponents.map(c => 
+            c.name === lastAction.component ? { ...c, landmarks: (lastAction.previousValue as string[]) || [] } : c
+          )
+        );
+        // Update landmark component index to allow re-annotation
+        const landmarkIndex = allComponents.findIndex(c => c.name === lastAction.component);
+        if (landmarkIndex !== -1) {
+          setLandmarkComponentIndex(landmarkIndex);
+          setSelectedComponent(allComponents[landmarkIndex].name);
+          setSelectedLandmarks((lastAction.previousValue as string[]) || []);
         }
         break;
     }
@@ -678,6 +707,56 @@ function App() {
     }
   };
 
+  const getNextLandmarkComponent = () => {
+    if (landmarkComponentIndex < allComponents.length - 1) {
+      setLandmarkComponentIndex(landmarkComponentIndex + 1);
+      setSelectedComponent(allComponents[landmarkComponentIndex + 1].name);
+      setSelectedLandmark('');
+    }
+  };
+
+  const handleSaveLandmark = () => {
+    if (selectedComponent && selectedLandmarks.length === 3) {
+      // Store the previous value for undo functionality
+      const previousValue = componentLandmarks[selectedComponent] || [];
+
+      // Update component landmarks
+      setComponentLandmarks(prev => ({
+        ...prev,
+        [selectedComponent]: selectedLandmarks
+      }));
+
+      // Update labeled components
+      setLabeledComponents(prevComponents => 
+        prevComponents.map(c => 
+          c.name === selectedComponent ? { ...c, landmarks: selectedLandmarks } : c
+        )
+      );
+
+      // Store the last action
+      setLastAction({
+        type: 'landmark',
+        component: selectedComponent,
+        value: selectedLandmarks,
+        previousValue
+      });
+      setCanUndo(true);
+
+      // Reset selection
+      setSelectedLandmarks([]);
+    }
+  };
+
+  const addLandmark = (landmarkName: string) => {
+    if (selectedLandmarks.length < 3 && !selectedLandmarks.includes(landmarkName)) {
+      setSelectedLandmarks(prev => [...prev, landmarkName]);
+    }
+  };
+
+  const removeLandmark = (landmarkName: string) => {
+    setSelectedLandmarks(prev => prev.filter(l => l !== landmarkName));
+  };
+
   const generateLegendJson = () => {
     const legendItems: LegendItem[] = allComponents.map((comp, index) => {
       // Get all relationships for this component
@@ -687,12 +766,16 @@ function App() {
           // Find proximity and spatial relation from our stored data
           const proximityEntry = componentProximities[comp.name]?.find(entry => entry.target === target.name);
           const spatialEntry = componentSpatialRelations[comp.name]?.find(entry => entry.target === target.name);
+          
+          // Check if this target is one of the landmarks for the current component
+          const isLandmark = (comp.landmarks || []).includes(target.name);
 
           return {
             target: target.name,
             proximity: proximityEntry?.proximity || "UNKNOWN",
             significance: 0.5,
-            position: spatialEntry?.spatialRelation || "UNKNOWN"
+            position: spatialEntry?.spatialRelation || "UNKNOWN",
+            landmark: isLandmark
           };
         });
 
@@ -701,6 +784,7 @@ function App() {
         text: comp.name,
         size: componentSizes[comp.name] || "UNKNOWN",
         frequency: componentFrequencies[comp.name] || "UNKNOWN",
+        landmarks: (comp.landmarks || []).join(', ') || "UNKNOWN",
         relationships
       };
     });
@@ -736,18 +820,21 @@ function App() {
           // Initialize size and frequency objects with empty values
           const initialSizes: Record<string, string> = {};
           const initialFrequencies: Record<string, string> = {};
+          const initialLandmarks: Record<string, string[]> = {};
           const initialProximities: Record<string, ProximityEntry[]> = {};
           const initialSpatialRelations: Record<string, SpatialEntry[]> = {};
           
           components.forEach((comp: Component) => {
             initialSizes[comp.name] = '';
             initialFrequencies[comp.name] = '';
+            initialLandmarks[comp.name] = [];
             initialProximities[comp.name] = [];
             initialSpatialRelations[comp.name] = [];
           });
           
           setComponentSizes(initialSizes);
           setComponentFrequencies(initialFrequencies);
+          setComponentLandmarks(initialLandmarks);
           setComponentProximities(initialProximities);
           setComponentSpatialRelations(initialSpatialRelations);
 
@@ -776,17 +863,20 @@ function App() {
     setLabeledComponents([]);
     setComponentSizes({});
     setComponentFrequencies({});
+    setComponentLandmarks({});
     setComponentProximities({});
     setComponentSpatialRelations({});
     setCurrentImage('');
     setSelectedComponent('');
     setSelectedSize('');
     setSelectedFrequency('');
+    setSelectedLandmark('');
     setSelectedTarget('');
     setSelectedDistance('');
     setSelectedSpatial('');
     setSizeComponentIndex(0);
     setFrequencyComponentIndex(0);
+    setLandmarkComponentIndex(0);
     setCurrentSourceIndex(0);
     setCurrentTargetIndex(1);
     setSpatialSourceIndex(0);
@@ -1138,6 +1228,7 @@ function App() {
 
             <Button 
               onClick={() => {
+                console.log('Going to Stage 4');
                 setStage(4);
                 setSelectedComponent(allComponents[0].name);
                 setSelectedTarget(allComponents[1].name);
@@ -1243,7 +1334,9 @@ function App() {
               <Button 
                 onClick={() => {
                   if (isLastPair && allPairsAnnotated) {
-                    handleBackToTilePage();
+                    setStage(5);
+                    setSelectedComponent(allComponents[0].name);
+                    setLandmarkComponentIndex(0);
                   } else {
                     handleSaveSpatial();
                     getNextSpatialPair();
@@ -1252,12 +1345,174 @@ function App() {
                 disabled={!selectedSpatial}
                 style={{ marginTop: '10px' }}
               >
-                {isLastPair && allPairsAnnotated ? 'Back to Home' : 'Save Spatial Relationship and Continue'}
+                {isLastPair && allPairsAnnotated ? 'Proceed to Stage 5' : 'Save Spatial Relationship and Continue'}
               </Button>
             </div>
 
             <div style={{ marginTop: '20px' }}>
               <h4>Progress: {spatialSourceIndex + 1} of {allComponents.length - 1} source components</h4>
+            </div>
+
+            <Button 
+              onClick={() => {
+                console.log('Going to Stage 5');
+                setStage(5);
+                setSelectedComponent(allComponents[0].name);
+                setLandmarkComponentIndex(0);
+              }}
+              style={{ backgroundColor: '#28a745', marginTop: '20px' }}
+            >
+              Proceed to Stage 5
+            </Button>
+          </UserInputSection>
+        </MainContent>
+
+        <AnnotatedList>
+          <h4>Annotated Spatial Relationships:</h4>
+          <ul>
+            {Object.entries(componentSpatialRelations)
+              .map(([source, entries]) => 
+                entries.map((entry, index) => (
+                  <li key={`${source}-${entry.target}-${index}`}>
+                    {source} → {entry.target} ({entry.spatialRelation})
+                  </li>
+                ))
+              )}
+          </ul>
+        </AnnotatedList>
+      </>
+    );
+  };
+
+  const renderStage6 = () => {
+    const isLastComponent = landmarkComponentIndex === allComponents.length - 1;
+    const allComponentsLandmarked = Object.values(componentLandmarks).every(landmarks => landmarks.length === 3);
+    const currentComponent = allComponents[landmarkComponentIndex];
+    const availableLandmarks = allComponents.filter(comp => comp.name !== currentComponent?.name);
+
+    return (
+      <>
+        <MainContent>
+          <InstructionsSection>
+            <h2>Task Instructions</h2>
+            <h3>Stage 5: Landmark Selection</h3>
+            <ol>
+              <li>For each component, select 3 landmark components that best describe its spatial position.</li>
+              <li>Landmarks are reference points that help describe where the current component is located.</li>
+              <li>Choose components that are visually distinctive and can effectively describe spatial relationships.</li>
+              <li>Examples: "Component A is below Landmark B, to the right of Landmark C, and above Landmark D"</li>
+              <li>Click on component names to add/remove them as landmarks (exactly 3 required).</li>
+            </ol>
+            <h4>Landmark Selection Criteria:</h4>
+            <ul>
+              <li><strong>Distinctive:</strong> Choose components that are easily recognizable</li>
+              <li><strong>Spatially Relevant:</strong> Components that help describe the current component's position</li>
+              <li><strong>Well-Positioned:</strong> Components that provide good reference points</li>
+            </ul>
+          </InstructionsSection>
+
+          <UserInputSection>
+            <h3>Landmark Selection</h3>
+            {renderUndoButton()}
+            <Button 
+              onClick={() => {
+                setStage(4);
+                setSelectedComponent(allComponents[spatialSourceIndex].name);
+                setSelectedTarget(allComponents[spatialTargetIndex].name);
+              }}
+              style={{ backgroundColor: '#6c757d', marginBottom: '20px' }}
+            >
+              Back to Stage 4
+            </Button>
+
+            <div style={{ marginBottom: '20px' }}>
+              <CurrentItem>
+                <CurrentItemTitle>Current Component</CurrentItemTitle>
+                <CurrentItemContent>{currentComponent?.name || 'None'}</CurrentItemContent>
+              </CurrentItem>
+              
+              <h4>Select 3 Landmark Components ({selectedLandmarks.length}/3):</h4>
+              
+              <div style={{ marginBottom: '15px' }}>
+                <strong>Selected Landmarks:</strong>
+                {selectedLandmarks.length === 0 ? (
+                  <div style={{ color: '#666', fontStyle: 'italic' }}>No landmarks selected yet</div>
+                ) : (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '5px' }}>
+                    {selectedLandmarks.map((landmark, index) => (
+                      <div key={landmark} style={{ 
+                        backgroundColor: '#e3f2fd', 
+                        padding: '5px 10px', 
+                        borderRadius: '15px', 
+                        border: '1px solid #2196f3',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '5px'
+                      }}>
+                        {landmark}
+                        <button 
+                          onClick={() => removeLandmark(landmark)}
+                          style={{ 
+                            background: 'none', 
+                            border: 'none', 
+                            color: '#f44336', 
+                            cursor: 'pointer',
+                            fontSize: '16px',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div style={{ marginBottom: '15px' }}>
+                <strong>Available Components:</strong>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '5px' }}>
+                  {availableLandmarks.map((comp) => (
+                    <button
+                      key={comp.name}
+                      onClick={() => addLandmark(comp.name)}
+                      disabled={selectedLandmarks.includes(comp.name) || selectedLandmarks.length >= 3}
+                      style={{
+                        backgroundColor: selectedLandmarks.includes(comp.name) ? '#4caf50' : '#f5f5f5',
+                        color: selectedLandmarks.includes(comp.name) ? 'white' : '#333',
+                        border: '1px solid #ddd',
+                        padding: '8px 12px',
+                        borderRadius: '4px',
+                        cursor: selectedLandmarks.includes(comp.name) || selectedLandmarks.length >= 3 ? 'not-allowed' : 'pointer',
+                        opacity: selectedLandmarks.includes(comp.name) || selectedLandmarks.length >= 3 ? 0.6 : 1
+                      }}
+                    >
+                      {comp.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <Button 
+                  onClick={() => {
+                    if (isLastComponent && allComponentsLandmarked) {
+                      generateLegendJson();
+                      handleBackToTilePage();
+                    } else {
+                      handleSaveLandmark();
+                      getNextLandmarkComponent();
+                    }
+                  }}
+                  disabled={selectedLandmarks.length !== 3}
+                >
+                  {isLastComponent && allComponentsLandmarked ? 'Export and Finish' : 'Save Landmarks and Continue'}
+                </Button>
+              </div>
+            </div>
+
+            <div style={{ marginTop: '20px' }}>
+              <h4>Progress: {landmarkComponentIndex + 1} of {allComponents.length} components</h4>
             </div>
 
             <Button 
@@ -1283,17 +1538,21 @@ function App() {
         </MainContent>
 
         <AnnotatedList>
-          <h4>Annotated Spatial Relationships:</h4>
-          <ul>
-            {Object.entries(componentSpatialRelations)
-              .map(([source, entries]) => 
-                entries.map((entry, index) => (
-                  <li key={`${source}-${entry.target}-${index}`}>
-                    {source} → {entry.target} ({entry.spatialRelation})
-                  </li>
-                ))
+          <h4>Component Landmarks:</h4>
+          {Object.entries(componentLandmarks).map(([name, landmarks]) => (
+            <div key={name} style={{ marginBottom: '10px' }}>
+              <h5 style={{ margin: '5px 0', color: '#333' }}>{name}:</h5>
+              {landmarks.length === 0 ? (
+                <div style={{ color: '#666', fontStyle: 'italic', fontSize: '0.9em' }}>No landmarks selected</div>
+              ) : (
+                <ul style={{ margin: '5px 0', paddingLeft: '20px' }}>
+                  {landmarks.map((landmark, index) => (
+                    <li key={`${name}-${landmark}-${index}`} style={{ fontSize: '0.9em' }}>{landmark}</li>
+                  ))}
+                </ul>
               )}
-          </ul>
+            </div>
+          ))}
         </AnnotatedList>
       </>
     );
@@ -1325,7 +1584,15 @@ function App() {
           </ImageSection>
           
           <SidePanel>
-            {stage === 1 ? renderStage2() : stage === 2 ? renderStage3() : stage === 3 ? renderStage4() : renderStage5()}
+            {(() => {
+              console.log('Current stage:', stage);
+              if (stage === 1) return renderStage2();
+              if (stage === 2) return renderStage3();
+              if (stage === 3) return renderStage4();
+              if (stage === 4) return renderStage5();
+              if (stage === 5) return renderStage6();
+              return <div>Unknown stage: {stage}</div>;
+            })()}
           </SidePanel>
         </>
       )}
